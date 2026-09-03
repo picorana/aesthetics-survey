@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualization methods × aesthetics with user studies</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,650&display=swap" rel="stylesheet">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        :root {
+            --ink: #17211f;
+            --muted: #66716d;
+            --paper: #f5f3ec;
+            --surface: #fffefa;
+            --line: #d9ddd7;
+            --line-strong: #aeb8b2;
+            --accent: #087f73;
+            --accent-dark: #075f57;
+            --accent-pale: #e3f2ee;
+            --empty: #eef0eb;
+            --not-applicable: #52635e;
+            --uncertain: #bd8119;
+            --caveat: #765693;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at 12% 0%, rgba(8, 127, 115, 0.08), transparent 28rem),
+                var(--paper);
+            font-family: "DM Sans", sans-serif;
+        }
+
+        main {
+            width: min(1540px, calc(100% - 40px));
+            margin: 0 auto;
+            padding: 64px 0 72px;
+        }
+
+        header {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: end;
+            gap: 28px;
+            margin-bottom: 28px;
+        }
+
+        .eyebrow {
+            margin: 0 0 10px;
+            color: var(--accent-dark);
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            max-width: 880px;
+            margin: 0;
+            font-family: "Source Serif 4", serif;
+            font-size: clamp(2rem, 4vw, 4.25rem);
+            font-weight: 650;
+            letter-spacing: -0.04em;
+            line-height: 0.98;
+        }
+
+        .subtitle {
+            max-width: 760px;
+            margin: 20px 0 0;
+            color: var(--muted);
+            font-size: 0.98rem;
+            line-height: 1.65;
+        }
+
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(108px, 1fr));
+            gap: 10px;
+        }
+
+        .summary-card {
+            min-width: 118px;
+            padding: 14px 16px;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: rgba(255, 254, 250, 0.82);
+        }
+
+        .summary-card strong {
+            display: block;
+            font-family: "Source Serif 4", serif;
+            font-size: 1.8rem;
+            line-height: 1;
+        }
+
+        .summary-card span {
+            display: block;
+            margin-top: 5px;
+            color: var(--muted);
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .matrix-shell {
+            overflow: auto;
+            max-height: calc(100vh - 110px);
+            border: 1px solid var(--line-strong);
+            border-radius: 16px;
+            background: var(--surface);
+            box-shadow: 0 18px 50px rgba(38, 52, 48, 0.08);
+        }
+
+        table {
+            width: 100%;
+            min-width: 1360px;
+            border-collapse: separate;
+            border-spacing: 0;
+            table-layout: fixed;
+        }
+
+        th,
+        td {
+            border-right: 1px solid var(--line);
+            border-bottom: 1px solid var(--line);
+        }
+
+        th:last-child,
+        td:last-child {
+            border-right: 0;
+        }
+
+        tbody tr:last-child th,
+        tbody tr:last-child td {
+            border-bottom: 0;
+        }
+
+        thead th {
+            position: sticky;
+            z-index: 3;
+            top: 0;
+            height: 126px;
+            padding: 14px 10px 16px;
+            vertical-align: bottom;
+            color: #33413d;
+            background: #f0f2ed;
+            font-size: 0.78rem;
+            font-weight: 700;
+            line-height: 1.25;
+            text-align: left;
+        }
+
+        thead th:first-child {
+            z-index: 5;
+            left: 0;
+            width: 170px;
+            padding: 20px;
+            color: var(--muted);
+            background: #e8ece6;
+            font-size: 0.68rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        tbody th {
+            position: sticky;
+            z-index: 2;
+            left: 0;
+            width: 170px;
+            padding: 18px 20px;
+            color: var(--ink);
+            background: #f7f6f1;
+            font-family: "Source Serif 4", serif;
+            font-size: 1.05rem;
+            font-weight: 650;
+            line-height: 1.15;
+            text-align: left;
+        }
+
+        td {
+            height: 108px;
+            padding: 10px;
+            vertical-align: top;
+            background: var(--surface);
+        }
+
+        td.has-papers {
+            background: var(--accent-pale);
+        }
+
+        td.is-empty {
+            background:
+                linear-gradient(135deg, transparent 49.2%, rgba(112, 124, 117, 0.11) 49.5%, rgba(112, 124, 117, 0.11) 50.5%, transparent 50.8%),
+                var(--empty);
+        }
+
+        td.not-applicable {
+            position: relative;
+            vertical-align: middle;
+            text-align: center;
+            background:
+                linear-gradient(135deg, transparent 46%, rgba(255, 255, 255, 0.07) 46%, rgba(255, 255, 255, 0.07) 54%, transparent 54%),
+                var(--not-applicable);
+        }
+
+        .na-label {
+            display: inline-block;
+            padding: 4px 6px;
+            border: 1px solid rgba(255, 255, 255, 0.32);
+            border-radius: 5px;
+            color: rgba(255, 255, 255, 0.88);
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+        }
+
+        td.is-uncertain {
+            position: relative;
+            box-shadow: inset 0 0 0 3px rgba(189, 129, 25, 0.58);
+        }
+
+        td.is-caveat {
+            position: relative;
+            box-shadow: inset 0 0 0 3px rgba(118, 86, 147, 0.52);
+        }
+
+        .cell-marker {
+            position: absolute;
+            top: 6px;
+            right: 7px;
+            display: grid;
+            width: 19px;
+            height: 19px;
+            place-items: center;
+            border-radius: 50%;
+            color: #fff;
+            font-size: 0.73rem;
+            font-weight: 700;
+            line-height: 1;
+            cursor: help;
+        }
+
+        .uncertain-marker {
+            background: var(--uncertain);
+        }
+
+        .caveat-marker {
+            background: var(--caveat);
+        }
+
+        .paper-list {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 6px;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .paper-link {
+            display: inline-flex;
+            align-items: baseline;
+            gap: 5px;
+            max-width: 100%;
+            padding: 5px 7px;
+            border: 1px solid rgba(8, 127, 115, 0.24);
+            border-radius: 6px;
+            color: var(--accent-dark);
+            background: rgba(255, 255, 255, 0.64);
+            font-size: 0.72rem;
+            font-weight: 700;
+            line-height: 1.2;
+            text-decoration: none;
+        }
+
+        .paper-link:hover,
+        .paper-link:focus-visible {
+            border-color: var(--accent);
+            color: #fff;
+            background: var(--accent);
+            outline: none;
+        }
+
+        .paper-link::after {
+            content: "↗";
+            font-size: 0.64rem;
+        }
+
+        .paper-count {
+            margin-left: auto;
+            color: var(--muted);
+            font-size: 0.68rem;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .status,
+        .error {
+            padding: 36px;
+            color: var(--muted);
+            text-align: center;
+        }
+
+        .error {
+            color: #8c2f24;
+        }
+
+        footer {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 16px 28px;
+            margin-top: 20px;
+            color: var(--muted);
+            font-size: 0.78rem;
+            line-height: 1.55;
+        }
+
+        .tag-mapping {
+            margin-top: 34px;
+            padding: 28px;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            background: rgba(255, 254, 250, 0.72);
+        }
+
+        .tag-mapping h2 {
+            margin: 0;
+            font-family: "Source Serif 4", serif;
+            font-size: 1.65rem;
+            letter-spacing: -0.02em;
+        }
+
+        .mapping-intro {
+            max-width: 900px;
+            margin: 8px 0 22px;
+            color: var(--muted);
+            font-size: 0.84rem;
+            line-height: 1.55;
+        }
+
+        .mapping-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .mapping-card {
+            min-width: 0;
+            padding: 15px;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            background: var(--surface);
+        }
+
+        .mapping-card h3 {
+            min-height: 2.4em;
+            margin: 0 0 12px;
+            font-size: 0.82rem;
+            line-height: 1.3;
+        }
+
+        .mapping-row + .mapping-row {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--line);
+        }
+
+        .mapping-label {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--muted);
+            font-size: 0.62rem;
+            font-weight: 700;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+        }
+
+        .tag-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .tag-list code {
+            padding: 3px 5px;
+            border: 1px solid #cbded8;
+            border-radius: 4px;
+            color: var(--accent-dark);
+            background: #eef7f4;
+            font-family: "DM Sans", sans-serif;
+            font-size: 0.66rem;
+            line-height: 1.2;
+        }
+
+        .no-tag {
+            color: var(--muted);
+            font-size: 0.72rem;
+            font-style: italic;
+        }
+
+        .compatibility-note {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 12px 24px;
+            margin-top: 20px;
+            padding: 16px 18px;
+            border-radius: 10px;
+            color: #43514d;
+            background: #e9eeea;
+            font-size: 0.76rem;
+            line-height: 1.5;
+        }
+
+        .compatibility-note > strong {
+            color: var(--ink);
+        }
+
+        .compatibility-note ul {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px 20px;
+            margin: 0;
+            padding-left: 18px;
+        }
+
+        .annotation-method {
+            grid-column: 2;
+            margin: 0;
+            color: var(--muted);
+        }
+
+        footer p {
+            max-width: 880px;
+            margin: 0;
+        }
+
+        .legend {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            white-space: nowrap;
+        }
+
+        .swatch {
+            display: inline-block;
+            width: 13px;
+            height: 13px;
+            margin-right: 5px;
+            border: 1px solid var(--line-strong);
+            border-radius: 3px;
+            vertical-align: -2px;
+        }
+
+        .swatch.match {
+            background: var(--accent-pale);
+        }
+
+        .swatch.empty {
+            background: var(--empty);
+        }
+
+        .swatch.na {
+            border-color: var(--not-applicable);
+            background: var(--not-applicable);
+        }
+
+        .swatch.uncertain {
+            border: 3px solid rgba(189, 129, 25, 0.72);
+            background: var(--empty);
+        }
+
+        .swatch.caveat {
+            border: 3px solid rgba(118, 86, 147, 0.68);
+            background: var(--empty);
+        }
+
+        @media (max-width: 800px) {
+            main {
+                width: min(100% - 20px, 1540px);
+                padding-top: 36px;
+            }
+
+            header {
+                grid-template-columns: 1fr;
+                align-items: start;
+            }
+
+            .summary {
+                width: min(100%, 300px);
+            }
+
+            .matrix-shell {
+                max-height: 72vh;
+            }
+
+            .mapping-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .mapping-card h3 {
+                min-height: 0;
+            }
+
+            .compatibility-note {
+                grid-template-columns: 1fr;
+            }
+
+            .annotation-method {
+                grid-column: auto;
+            }
+        }
+
+        @media (min-width: 801px) and (max-width: 1150px) {
+            .mapping-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <header>
+            <div>
+                <p class="eyebrow">Evidence map · user studies</p>
+                <h1>Where visualization methods meet aesthetic metrics</h1>
+                <p class="subtitle">
+                    Every linked paper is tagged with the row’s visualization method and the column’s aesthetic metric,
+                    and reports a qualitative or quantitative user study in the paper catalogue.
+                </p>
+            </div>
+            <div class="summary" aria-live="polite">
+                <div class="summary-card">
+                    <strong id="paper-total">—</strong>
+                    <span>linked papers</span>
+                </div>
+                <div class="summary-card">
+                    <strong id="cell-total">—</strong>
+                    <span>covered cells</span>
+                </div>
+            </div>
+        </header>
+
+        <section class="matrix-shell" aria-label="Visualization method and aesthetic metric matrix">
+            <div id="matrix" class="status">Loading the paper catalogue…</div>
+        </section>
+
+        <section class="tag-mapping" aria-labelledby="mapping-title">
+            <h2 id="mapping-title">Column mapping</h2>
+            <p class="mapping-intro">
+                A paper enters a column when it has at least one of the listed normalized <code>Aesthetic Tag</code>
+                values. The entropy category is the only exception: the catalogue has no corresponding normalized tag,
+                so it uses the listed values from <code>Aesthetic Metrics</code> instead.
+            </p>
+            <div id="category-mapping" class="mapping-grid"></div>
+            <div class="compatibility-note">
+                <strong>Cell annotations</strong>
+                <ul id="cell-annotation-mapping"></ul>
+                <p class="annotation-method">
+                    For combined columns, N/A means neither component applies; an asterisk marks partial or qualified applicability.
+                </p>
+            </div>
+        </section>
+
+        <footer>
+            <p>
+                Source: <code>data/paper_categorization.csv</code>. “Matrix” includes Matrix and Adjacency Matrix tags;
+                the other visualization rows use their corresponding detailed visualization tags. Every result must also
+                report a qualitative or quantitative user study. Duplicate catalogue rows are merged by BibTeX key.
+            </p>
+            <div class="legend" aria-label="Legend">
+                <span><i class="swatch match"></i>paper found</span>
+                <span><i class="swatch empty"></i>no match</span>
+                <span><i class="swatch na"></i>not applicable</span>
+                <span><i class="swatch uncertain"></i>uncertain (?)</span>
+                <span><i class="swatch caveat"></i>qualified (*)</span>
+            </div>
+        </footer>
+    </main>
+
+    <script src="js/visualization_aesthetic_study_matrix.js"></script>
+</body>
+</html>
